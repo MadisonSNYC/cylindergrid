@@ -159,7 +159,7 @@ export default function LabCarousel() {
     e.preventDefault();
     setActiveIndex(index);
     // Announce to screen readers
-    const announcement = `Opened project: ${projects[index].title}`;
+    const announcement = `Opened project: ${projects[index]?.title ?? 'Unknown'}`;
     const liveRegion = document.getElementById('aria-live-region');
     if (liveRegion) {
       liveRegion.textContent = announcement;
@@ -258,7 +258,7 @@ export default function LabCarousel() {
       <Lightbox
         open={activeIndex !== null}
         onClose={closeLightbox}
-        project={activeIndex !== null ? projects[activeIndex] : null}
+        project={activeIndex !== null ? (projects[activeIndex] ?? null) : null}
       />
       
       {/* ARIA live region for announcements */}
