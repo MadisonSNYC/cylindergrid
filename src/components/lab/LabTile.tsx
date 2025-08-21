@@ -3,9 +3,10 @@ import type { LabProject } from '../../data/labProjects';
 interface LabTileProps {
   project: LabProject;
   onTileClick?: (e: React.MouseEvent) => void;
+  fxEnabled?: boolean;
 }
 
-export default function LabTile({ project, onTileClick }: LabTileProps) {
+export default function LabTile({ project, onTileClick, fxEnabled }: LabTileProps) {
   const { title, alt, thumbSrc } = project;
   
   const handleClick = (e: React.MouseEvent) => {
@@ -31,6 +32,7 @@ export default function LabTile({ project, onTileClick }: LabTileProps) {
       role="button"
       tabIndex={0}
       aria-label={`View details for ${title}`}
+      style={fxEnabled ? ({ ['--thumb-url' as string]: `url(${thumbSrc})` } as React.CSSProperties) : undefined}
     >
       <img 
         className="lab-img" 

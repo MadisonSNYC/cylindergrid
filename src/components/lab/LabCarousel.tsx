@@ -6,6 +6,8 @@ import Lightbox from './Lightbox';
 import useReducedMotionPref from '../../hooks/useReducedMotionPref';
 import useRafLoop from '../../hooks/useRafLoop';
 import useDragRotate from '../../hooks/useDragRotate';
+import { defaultFxConfig, shouldEnableFx } from '../../lib/flags';
+import FxToggle from '../settings/FxToggle';
 
 /** Compute radius from tile width and count for tight circle */
 function computeRadiusPx(count: number, tileWidthPx: number): number {
@@ -29,6 +31,14 @@ export default function LabCarousel() {
   const [isAutoSpinning, setIsAutoSpinning] = useState(!prefersReduced && !isGridView);
   const [velocity, setVelocity] = useState(0);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  
+  // Visual FX state (OFF by default)
+  const [fx, setFx] = useState({
+    enabled: false,
+    scanlines: defaultFxConfig.scanlines,
+    rgbSplitOnHover: defaultFxConfig.rgbSplitOnHover,
+    depthFade: defaultFxConfig.depthFade,
+  });
 
   // Interaction tracking
   const containerRef = useRef<HTMLDivElement>(null);
@@ -153,6 +163,14 @@ export default function LabCarousel() {
   const angleDeg = 360 / Math.max(count, 1);
   const approxTileWidthPx = 256;
   const radius = useMemo(() => computeRadiusPx(count, approxTileWidthPx), [count]);
+  
+  // Helper for depth factor in [0..1], simple cosine of angle to camera (0deg front)
+  const depthForIndex = useCallback((i: number) => {
+    const deg = ((angleDeg * i) + rotationDeg) % 360;
+    const rad = (deg * Math.PI) / 180;
+    // front ≈ 0deg -> cos ~1; back ≈ 180deg -> cos ~-1 → clamp to [0..1]
+    return Math.max(0, Math.min(1, (Math.cos(rad) + 1) / 2));
+  }, [angleDeg, rotationDeg]);
 
   // Handle tile click for lightbox
   const handleTileClick = useCallback((index: number, e: React.MouseEvent) => {
@@ -171,9 +189,12 @@ export default function LabCarousel() {
     setActiveIndex(null);
   }, []);
 
+  // Apply FX only if enabled AND environment allows it
+  const fxActive = fx.enabled && shouldEnableFx(prefersReduced);
+  
   return (
     <>
-      <section className="lab-section" aria-label="Project showcase">
+      <section className={`lab-section ${fxActive ? 'lab-fx--on' : ''}`} aria-label="Project showcase">
         <div className="mb-6">
           <button
             type="button"
@@ -188,6 +209,8 @@ export default function LabCarousel() {
           >
             {isGridView ? 'View as Carousel' : 'View as Grid'}
           </button>
+          {/* Visual FX toggle (optional UI). Master off by default. */}
+          <FxToggle value={fx} onChange={setFx} />
         </div>
 
         {!isGridView ? (
@@ -205,7 +228,7 @@ export default function LabCarousel() {
               Skip 3D view
             </a>
             <div 
-            className="lab-root"
+            className={`lab-root ${fxActive && fx.scanlines ? 'lab-scanlines' : ''}`}
             style={{ ['--rotation' as string]: `${rotationDeg}deg` }}
           >
             <div
@@ -235,9 +258,10 @@ export default function LabCarousel() {
                       ['--tile-angle' as string]: `${angleDeg}deg`,
                       ['--radius' as string]: `${radius}px`,
                       transform: `rotateY(calc(var(--tile-index) * var(--tile-angle))) translateZ(var(--radius))`,
+                      ...(fxActive && fx.depthFade ? { ['--depthFactor' as string]: String(depthForIndex(i)) } : {})
                     }}
                   >
-                    <LabTile project={p} onTileClick={(e) => handleTileClick(i, e)} />
+                    <LabTile project={p} onTileClick={(e) => handleTileClick(i, e)} fxEnabled={fxActive} />
                   </div>
                 );
               })}
@@ -248,7 +272,7 @@ export default function LabCarousel() {
           <div className="lab-grid" role="region" aria-label="Project grid">
             {projects.map((p, i) => (
               <div key={p.href} className="lab-grid-item" data-testid="lab-tile">
-                <LabTile project={p} onTileClick={(e) => handleTileClick(i, e)} />
+                <LabTile project={p} onTileClick={(e) => handleTileClick(i, e)} fxEnabled={fxActive} />
               </div>
             ))}
           </div>

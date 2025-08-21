@@ -401,37 +401,49 @@ pnpm build
 - Reduced motion respected
 **Rollback:** `git checkout -- src/components/lab/`
 
-## Phase 4: Auto-rotation & Pause
+## Phase 4: Visual Enhancements (Progressive) ✅
 
-### Task 4.1: Auto-rotation Logic
-**Goal:** Implement automatic carousel rotation
+### Task 4.1: Feature Flags System ✅
+**Goal:** Add feature flags with conservative defaults (OFF by default)
 **Steps:**
-1. Add rotation interval (5s default)
-2. Implement requestAnimationFrame loop
-3. Calculate smooth rotation increments
-4. Add configuration options
+1. Create flags.ts with VisualFxConfig type
+2. Implement shouldEnableFx() with reduced-motion and hardware gating
+3. Default all FX to OFF (master kill switch)
+4. Gate on minimum 6 cores for mobile devices
 
-**Commands:**
-```bash
-pnpm dev
-# Check DevTools Performance tab for FPS
-```
-
-**Expected Output:** Smooth continuous rotation
 **Acceptance Criteria:**
-- 60 FPS maintained
-- Configurable speed
-- Respects reduced motion
-- GPU-accelerated transforms only
-**Rollback:** `git checkout -- src/hooks/useAutoRotation.ts`
+- FX disabled by default
+- Reduced motion always disables FX
+- Low-core devices auto-disable FX
 
-### Task 4.2: Pause on Interaction
-**Goal:** Stop rotation during user interaction
+### Task 4.2: CSS-Only Visual Effects ✅
+**Goal:** Implement performant CSS-only visual effects
 **Steps:**
-1. Detect hover/focus on tiles
-2. Pause on manual navigation
-3. Resume after delay
-4. Add play/pause button
+1. **Scanlines overlay** - repeating linear gradient on container
+2. **RGB split on hover** - pseudo-elements with channel offsets
+3. **Depth fade** - opacity based on tile position via --depthFactor
+
+**Acceptance Criteria:**
+- No JavaScript per-frame calculations
+- Effects use GPU compositing
+- CLS remains < 0.1
+- FPS stable at ~60
+
+### Task 4.3: FX Toggle UI ✅
+**Goal:** Manual override controls for visual effects
+**Steps:**
+1. Create FxToggle component with master switch
+2. Individual toggles for each effect
+3. Show disabled state when master is off
+4. Add data-testid for testing
+
+### Task 4.4: Tests & Documentation ✅
+**Goal:** Ensure FX behavior is correct and documented
+**Steps:**
+1. Playwright tests for FX gating
+2. Reduced motion enforcement tests
+3. Update ARCHITECTURE.md with FX system
+4. Document performance impact
 
 **Commands:**
 ```bash
