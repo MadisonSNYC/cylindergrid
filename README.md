@@ -66,6 +66,11 @@ The carousel uses pure CSS transforms for GPU-accelerated performance:
 - **Focus Management**: Focus trap in lightbox, logical tab order
 - **Color Contrast**: WCAG AAA compliant
 
+## Environment
+
+- `VITE_SHOW_FX_TOGGLE` (optional): set to `true` to show Visual FX toggle UI in prod.
+  By default, FX are OFF and the toggle is hidden in production.
+
 ## Project Structure
 
 ```
@@ -91,12 +96,12 @@ src/
 
 ```typescript
 interface CarouselConfig {
-  autoRotate?: boolean;        // Enable auto-rotation (default: true)
-  rotationSpeed?: number;      // Seconds per rotation (default: 30)
-  pauseOnHover?: boolean;      // Pause on interaction (default: true)
-  tileCount?: number;          // Number of visible tiles
-  perspective?: number;        // 3D perspective value
-  animationDuration?: number;  // Transition duration in ms
+  autoRotate?: boolean; // Enable auto-rotation (default: true)
+  rotationSpeed?: number; // Seconds per rotation (default: 30)
+  pauseOnHover?: boolean; // Pause on interaction (default: true)
+  tileCount?: number; // Number of visible tiles
+  perspective?: number; // 3D perspective value
+  animationDuration?: number; // Transition duration in ms
 }
 ```
 
@@ -141,6 +146,7 @@ MIT © 2024 Ashfall Lab
 ## Credits
 
 Built with:
+
 - React 18
 - TypeScript
 - Vite

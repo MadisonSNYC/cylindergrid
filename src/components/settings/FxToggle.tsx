@@ -12,6 +12,7 @@ export default function FxToggle({
   value: FxState;
   onChange: (v: FxState) => void;
 }) {
+  if (import.meta.env.PROD && !import.meta.env.VITE_SHOW_FX_TOGGLE) return null;
   return (
     <fieldset
       style={{
