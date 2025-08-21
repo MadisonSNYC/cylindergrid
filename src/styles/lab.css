@@ -1,0 +1,355 @@
+/* -------- 3D Carousel Core -------- */
+.lab-root {
+  perspective: 1200px; /* camera distance */
+}
+.lab-section {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #000; /* immersive dark */
+  color: #fff;
+}
+
+/* Container that rotates all tiles */
+.lab-carousel {
+  position: relative;
+  width: clamp(520px, 70vw, 900px);
+  height: clamp(320px, 45vw, 520px);
+  transform-style: preserve-3d;
+  animation: lab-spin 20s linear infinite;
+  will-change: transform;
+}
+
+/* Each tile is centered, then offset via rotateY(idx*angle) translateZ(radius) */
+.lab-tile {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16rem; /* Tailwind w-64 equivalent */
+  height: 10rem; /* Tailwind h-40 equivalent */
+  transform-style: preserve-3d;
+  backface-visibility: visible; /* IMPORTANT: allow tile to render both sides; inner .lab-card will hide its own backface */
+  translate: -50% -50%; /* center anchor point */
+  /* CSP-safe variables option:
+     transform: rotateY(calc(var(--tile-index) * var(--tile-angle) + var(--rotation, 0deg)))
+                translateZ(var(--radius));
+   */
+}
+
+.lab-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  backface-visibility: hidden; /* hide the card's back, but not the outer tile */
+}
+
+.lab-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0.75rem;
+  filter: grayscale(100%);
+  transition:
+    filter 0.25s ease,
+    transform 0.25s ease;
+}
+
+/* Hover == Focus parity (accessibility) */
+.lab-link:is(:hover, :focus) .lab-img {
+  filter: none;
+  transform: scale(1.015);
+  outline: none;
+}
+.lab-link:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+  border-radius: 0.5rem;
+}
+
+/* Reduced motion: stop spinning */
+@media (prefers-reduced-motion: reduce) {
+  .lab-carousel {
+    animation: none !important;
+  }
+  .lab-img {
+    transition: none !important;
+  }
+}
+
+/* Fallback grid (toggle or reduced motion default) */
+.lab-grid {
+  width: min(92vw, 1200px);
+  margin-inline: auto;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+.lab-grid-item {
+  aspect-ratio: 16 / 10;
+}
+.lab-grid-item .lab-img {
+  height: 100%;
+  width: 100%;
+}
+/* Ensure keyboard-only users get clear indication on grid items too */
+.lab-grid-item a:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+  border-radius: 0.5rem;
+}
+
+/* Keyframes */
+@keyframes lab-spin {
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+/* -------- Lightbox Modal -------- */
+.lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.lightbox-dialog {
+  position: relative;
+  width: min(92vw, 1200px);
+  max-height: 90vh;
+  padding: 2rem;
+  background: rgba(20, 20, 20, 0.95);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: scaleIn 0.2s ease-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 1.5rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.lightbox-close:hover,
+.lightbox-close:focus {
+  background: rgba(255, 255, 255, 0.2);
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+.lightbox-image {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  width: auto;
+  height: auto;
+  border-radius: 0.5rem;
+  object-fit: contain;
+}
+
+.lightbox-caption {
+  margin-top: 1.5rem;
+  text-align: center;
+  color: white;
+}
+
+.lightbox-caption h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.lightbox-link {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0.25rem;
+  display: inline-block;
+  margin-top: 0.5rem;
+  transition: all 0.2s;
+}
+
+.lightbox-link:hover,
+.lightbox-link:focus {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-color: white;
+  outline: none;
+}
+
+/* Screen reader only text */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Reduced motion variants */
+@media (prefers-reduced-motion: reduce) {
+  .lightbox-backdrop.no-motion,
+  .lightbox-dialog.no-motion {
+    animation: none !important;
+  }
+
+  .lightbox-backdrop.no-motion {
+    opacity: 1;
+  }
+
+  .lightbox-dialog.no-motion {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---------- Phase 4: Visual FX (progressive) ---------- */
+/* Container modifier toggled at runtime: .lab-fx--on on .lab-section or .lab-root */
+
+/* 1) Scanlines: subtle repeating linear gradient overlay, non-blocking repaint (composited) */
+.lab-fx--on .lab-scanlines {
+  position: relative;
+}
+.lab-fx--on .lab-scanlines::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.03) 0px,
+    rgba(255, 255, 255, 0.03) 1px,
+    rgba(0, 0, 0, 0) 3px,
+    rgba(0, 0, 0, 0) 4px
+  );
+  mix-blend-mode: screen;
+  opacity: 0.15;
+  z-index: 1;
+}
+
+/* 2) RGB split: duplicate image using pseudo elements with channel tints; reveal on hover/focus */
+.lab-fx--on .lab-link {
+  position: relative;
+  isolation: isolate; /* contain blending */
+}
+.lab-fx--on .lab-link::before,
+.lab-fx--on .lab-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 0.75rem;
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+  background: var(--thumb-url) center/cover no-repeat;
+  filter: saturate(140%);
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+.lab-fx--on .lab-link::before {
+  mix-blend-mode: multiply;
+  /* red channel offset */
+  transform: translateX(-2px);
+  filter: sepia(100%) saturate(200%) hue-rotate(295deg);
+}
+.lab-fx--on .lab-link::after {
+  mix-blend-mode: screen;
+  /* blue channel offset */
+  transform: translateX(2px);
+  filter: sepia(100%) saturate(200%) hue-rotate(180deg);
+}
+.lab-fx--on .lab-link:is(:hover, :focus) .lab-img {
+  transform: scale(1.05);
+  filter: contrast(1.1) brightness(1.05);
+}
+.lab-fx--on .lab-link:is(:hover, :focus)::before,
+.lab-fx--on .lab-link:is(:hover, :focus)::after {
+  opacity: 0.7;
+}
+
+/* 3) Depth fade: far tiles down-weighted (but still visible), very subtle blur */
+.lab-fx--on .lab-tile {
+  /* --depthFactor in [0..1]; 1=front, 0=far. Keep backs >= 0.55 opacity so they're readable. */
+  opacity: calc(0.55 + (var(--depthFactor, 1) * 0.45));
+  filter: blur(calc((1 - var(--depthFactor, 1)) * 0.6px))
+    brightness(calc(0.4 + (var(--depthFactor, 1) * 0.6)))
+    contrast(calc(0.5 + (var(--depthFactor, 1) * 0.5)))
+    saturate(calc(0.3 + (var(--depthFactor, 1) * 0.7)));
+  transition:
+    opacity 0.25s ease,
+    filter 0.25s ease;
+}
+
+/* Debug: Show depth factor as a visual indicator */
+.lab-fx--on .lab-tile::after {
+  content: attr(data-depth);
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: rgba(255, 255, 255, 0.8);
+  color: black;
+  padding: 2px 4px;
+  font-size: 10px;
+  border-radius: 2px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* 4) Reduced motion: force-disable RGB split animation & scanlines */
+@media (prefers-reduced-motion: reduce) {
+  .lab-fx--on .lab-link::before,
+  .lab-fx--on .lab-link::after {
+    transition: none !important;
+    opacity: 0 !important;
+  }
+  .lab-fx--on .lab-scanlines::before {
+    display: none !important;
+  }
+}

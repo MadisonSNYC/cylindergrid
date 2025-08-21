@@ -490,6 +490,212 @@ jobs:
           fi
 ```
 
+## Playwright + Axe Test Integration
+
+### Automated Accessibility Testing
+
+```bash
+# Install dependencies
+npm install -D @axe-core/playwright
+
+# Run accessibility tests
+npx playwright test tests/lab.a11y.spec.ts
+```
+
+### Sample Test Implementation
+
+```typescript
+// tests/lab.a11y.spec.ts
+import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+test.describe('Lab Carousel Accessibility', () => {
+  test('should not have any automatically detectable accessibility issues', async ({ page }) => {
+    await page.goto('/');
+    
+    const accessibilityScanResults = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      .analyze();
+    
+    expect(accessibilityScanResults.violations).toEqual([]);
+  });
+  
+  test('keyboard navigation flow', async ({ page }) => {
+    await page.goto('/');
+    
+    // Tab to skip link
+    await page.keyboard.press('Tab');
+    await expect(page.locator('.skip-link')).toBeFocused();
+    
+    // Activate skip link
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#main-carousel')).toBeFocused();
+    
+    // Navigate carousel with arrows
+    await page.keyboard.press('ArrowRight');
+    // Verify rotation and announcement
+    
+    // Open modal
+    await page.keyboard.press('Enter');
+    await expect(page.locator('[role="dialog"]')).toBeVisible();
+    
+    // Close with Escape
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[role="dialog"]')).not.toBeVisible();
+    // Verify focus restoration
+  });
+});
+```
+
+## Lighthouse CI Configuration
+
+### Performance Thresholds
+
+```json
+// lighthouse-ci.json
+{
+  "ci": {
+    "collect": {
+      "url": ["http://localhost:5173"],
+      "numberOfRuns": 3
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", {"minScore": 0.9}],
+        "categories:accessibility": ["error", {"minScore": 0.95}],
+        "cumulative-layout-shift": ["error", {"maxNumericValue": 0.1}],
+        "largest-contentful-paint": ["warn", {"maxNumericValue": 2500}],
+        "first-input-delay": ["error", {"maxNumericValue": 100}]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}
+```
+
+### CI Integration
+
+```bash
+# Install Lighthouse CI
+npm install -g @lhci/cli
+
+# Run Lighthouse CI
+lhci autorun
+
+# Or as part of workflow
+npx lhci autorun --collect.numberOfRuns=1
+```
+
+## E2E Test Scenarios
+
+### Critical User Journeys
+
+```typescript
+// tests/e2e/critical-paths.spec.ts
+test.describe('Critical User Paths', () => {
+  test('complete interaction flow', async ({ page }) => {
+    await page.goto('/');
+    
+    // 1. Initial load and interaction
+    await expect(page.locator('.lab-carousel')).toBeVisible();
+    await page.locator('.lab-carousel').hover();
+    
+    // 2. Navigate carousel
+    await page.click('[aria-label="Next project"]');
+    await page.waitForTimeout(300); // Wait for animation
+    
+    // 3. Open lightbox
+    await page.click('.lab-tile[data-index="1"]');
+    await expect(page.locator('[role="dialog"]')).toBeVisible();
+    
+    // 4. Navigate within lightbox
+    await page.click('[aria-label="Next image"]');
+    
+    // 5. Close and verify focus restoration
+    await page.click('[aria-label="Close dialog"]');
+    await expect(page.locator('.lab-tile[data-index="1"]')).toBeFocused();
+    
+    // 6. Toggle view mode
+    await page.click('[aria-label="Grid view"]');
+    await expect(page.locator('.lab-grid')).toBeVisible();
+  });
+  
+  test('reduced motion experience', async ({ page }) => {
+    // Emulate reduced motion preference
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    
+    // Should default to grid view
+    await expect(page.locator('.lab-grid')).toBeVisible();
+    
+    // No auto-rotation
+    const initialRotation = await page.locator('.lab-carousel').getAttribute('data-rotation');
+    await page.waitForTimeout(2000);
+    const finalRotation = await page.locator('.lab-carousel').getAttribute('data-rotation');
+    expect(initialRotation).toBe(finalRotation);
+  });
+});
+```
+
+### Performance Regression Tests
+
+```typescript
+test.describe('Performance', () => {
+  test('CLS remains under 0.1', async ({ page }) => {
+    await page.goto('/');
+    
+    // Start performance measurement
+    const cls = await page.evaluate(() => {
+      return new Promise((resolve) => {
+        new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          const cls = entries.reduce((sum, entry) => sum + entry.value, 0);
+          resolve(cls);
+        }).observe({ entryTypes: ['layout-shift'] });
+        
+        // Trigger interactions that might cause layout shift
+        setTimeout(() => resolve(0), 3000);
+      });
+    });
+    
+    expect(cls).toBeLessThan(0.1);
+  });
+  
+  test('maintains 60 FPS during rotation', async ({ page }) => {
+    await page.goto('/');
+    
+    // Measure frame rate during rotation
+    const fps = await page.evaluate(() => {
+      const frames: number[] = [];
+      let lastTime = performance.now();
+      
+      return new Promise((resolve) => {
+        const measureFrame = () => {
+          const now = performance.now();
+          frames.push(1000 / (now - lastTime));
+          lastTime = now;
+          
+          if (frames.length < 60) {
+            requestAnimationFrame(measureFrame);
+          } else {
+            const avgFps = frames.reduce((a, b) => a + b) / frames.length;
+            resolve(avgFps);
+          }
+        };
+        
+        // Start rotation
+        document.querySelector('[aria-label="Next project"]')?.click();
+        requestAnimationFrame(measureFrame);
+      });
+    });
+    
+    expect(fps).toBeGreaterThan(55);
+  });
+});
+```
+
 ## Sign-off Criteria
 
 Before marking any task complete:
@@ -498,7 +704,8 @@ Before marking any task complete:
 2. ✅ Manual testing checklist complete
 3. ✅ CLS < 0.1 verified in production build
 4. ✅ Cross-browser testing done
-5. ✅ Accessibility audit passes
-6. ✅ Performance budget met
-7. ✅ No console errors/warnings
-8. ✅ Documentation updated
+5. ✅ Accessibility audit passes (Playwright + axe)
+6. ✅ Performance budget met (Lighthouse CI)
+7. ✅ E2E test scenarios passing
+8. ✅ No console errors/warnings
+9. ✅ Documentation updated
