@@ -131,9 +131,78 @@ pnpm typecheck
 - Visible focus states
 **Rollback:** `git checkout -- src/components/lab/LabCarousel.tsx`
 
-## Phase 2: Lightbox Modal
+## Phase 2: Interaction + Lightbox Modal ✅
 
-### Task 2.1: Modal Component
+### Task 2.0: Setup ESLint & Prettier
+**Goal:** Add linting and formatting tools
+**Steps:**
+1. Install ESLint, TypeScript ESLint, Prettier
+2. Configure .eslintrc.cjs and .prettierrc
+3. Add lint/format scripts
+
+**Commands:**
+```bash
+npm install --save-dev eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-config-prettier prettier
+npm run lint
+```
+
+**Expected Output:** No linting errors
+**Acceptance Criteria:** Code passes ESLint and TypeScript checks
+**Rollback:** `git checkout -- .eslintrc.cjs .prettierrc package.json`
+
+**Run These Checks:**
+```bash
+npm run typecheck
+npm run lint
+# Expected: Both pass without errors
+```
+
+### Task 2.1: Drag & Scroll Rotation
+**Goal:** Add interactive rotation controls
+**Steps:**
+1. Create useDragRotate hook for pointer events
+2. Add wheel event handling
+3. Implement inertia with damping
+4. Use CSS variables for CSP-safe transforms
+
+**Commands:**
+```bash
+npm run dev
+# Test drag and wheel rotation
+```
+
+**Expected Output:** Smooth rotation with inertia
+**Acceptance Criteria:**
+- Drag rotates cylinder smoothly
+- Release continues with decaying velocity
+- Wheel adjusts rotation without page scroll issues
+- 60 FPS maintained
+**Rollback:** `git checkout -- src/hooks/useDragRotate.ts src/components/lab/LabCarousel.tsx`
+
+**Run These Checks:**
+```bash
+# Open DevTools > Performance
+# Record during drag - verify 60 FPS
+# Check no long tasks > 50ms
+```
+
+### Task 2.2: Pause/Resume Logic
+**Goal:** Smart auto-rotation management
+**Steps:**
+1. Pause on hover/focus/drag
+2. Track last interaction time
+3. Resume after 2s idle
+4. Use RAF loop for consistent timing
+
+**Expected Output:** Auto-spin pauses and resumes intelligently
+**Acceptance Criteria:**
+- Hover pauses immediately
+- Resumes 2s after mouse leaves
+- Drag overrides auto-spin
+- Focus also pauses
+**Rollback:** `git checkout -- src/components/lab/LabCarousel.tsx`
+
+### Task 2.3: Accessible Lightbox Modal
 **Goal:** Create accessible lightbox modal
 **Steps:**
 1. Create LabLightbox.tsx component
