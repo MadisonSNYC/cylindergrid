@@ -12,7 +12,7 @@ import FxToggle from '../settings/FxToggle';
 /** Compute radius from tile width and count for tight circle */
 function computeRadiusPx(count: number, tileWidthPx: number): number {
   if (count < 3) return 600;
-  const r = (tileWidthPx / 2) / Math.tan(Math.PI / count);
+  const r = tileWidthPx / 2 / Math.tan(Math.PI / count);
   return Math.max(400, Math.min(1200, r));
 }
 
@@ -31,7 +31,7 @@ export default function LabCarousel() {
   const [isAutoSpinning, setIsAutoSpinning] = useState(!prefersReduced && !isGridView);
   const [velocity, setVelocity] = useState(0);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  
+
   // Visual FX state (OFF by default)
   const [fx, setFx] = useState({
     enabled: false,
@@ -90,23 +90,26 @@ export default function LabCarousel() {
   }, [dragging, dragVelocity]);
 
   // Handle wheel events
-  const handleWheel = useCallback((e: WheelEvent) => {
-    if (isGridView || !containerRef.current?.contains(e.target as Node)) return;
-    
-    e.preventDefault();
-    setIsAutoSpinning(false);
-    lastInteractionTime.current = Date.now();
-    
-    // Use deltaY for vertical scroll, deltaX for horizontal
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    setRotationDeg((prev) => prev + delta * 0.1);
-  }, [isGridView]);
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
+      if (isGridView || !containerRef.current?.contains(e.target as Node)) return;
+
+      e.preventDefault();
+      setIsAutoSpinning(false);
+      lastInteractionTime.current = Date.now();
+
+      // Use deltaY for vertical scroll, deltaX for horizontal
+      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      setRotationDeg((prev) => prev + delta * 0.1);
+    },
+    [isGridView],
+  );
 
   // Add wheel listener
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    
+
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
@@ -147,14 +150,22 @@ export default function LabCarousel() {
 
     // Auto-resume spinning after idle (only if not reduced motion)
     const idleTime = Date.now() - lastInteractionTime.current;
-    if (!prefersReduced && !isGridView && !dragging && !isHovered.current && 
-        !isFocused.current && idleTime > 2000 && !isAutoSpinning && activeIndex === null) {
+    if (
+      !prefersReduced &&
+      !isGridView &&
+      !dragging &&
+      !isHovered.current &&
+      !isFocused.current &&
+      idleTime > 2000 &&
+      !isAutoSpinning &&
+      activeIndex === null
+    ) {
       setIsAutoSpinning(true);
     }
 
     // Auto-spin
     if (isAutoSpinning && !dragging) {
-      setRotationDeg((prev) => prev + dt * 0.018); // ~20s for 360°
+      setRotationDeg((prev) => prev + dt * 0.018); // ~20s for 360° - normal speed
     }
   }, !isGridView);
 
@@ -163,14 +174,23 @@ export default function LabCarousel() {
   const angleDeg = 360 / Math.max(count, 1);
   const approxTileWidthPx = 256;
   const radius = useMemo(() => computeRadiusPx(count, approxTileWidthPx), [count]);
-  
+
   // Helper for depth factor in [0..1], simple cosine of angle to camera (0deg front)
-  const depthForIndex = useCallback((i: number) => {
-    const deg = ((angleDeg * i) + rotationDeg) % 360;
-    const rad = (deg * Math.PI) / 180;
-    // front ≈ 0deg -> cos ~1; back ≈ 180deg -> cos ~-1 → clamp to [0..1]
-    return Math.max(0, Math.min(1, (Math.cos(rad) + 1) / 2));
-  }, [angleDeg, rotationDeg]);
+  const depthForIndex = useCallback(
+    (i: number) => {
+      // Calculate the current angle of this tile relative to the viewer
+      const tileAngle = angleDeg * i + rotationDeg;
+      // Normalize to 0-360 range
+      const normalizedAngle = ((tileAngle % 360) + 360) % 360;
+      // Convert to radians
+      const rad = (normalizedAngle * Math.PI) / 180;
+      // front ≈ 0deg -> cos(0) = 1; back ≈ 180deg -> cos(π) = -1
+      // Map from [-1, 1] to [0, 1] where 1 is front, 0 is back
+      const depth = (Math.cos(rad) + 1) / 2;
+      return depth;
+    },
+    [angleDeg, rotationDeg],
+  );
 
   // Handle tile click for lightbox
   const handleTileClick = useCallback((index: number, e: React.MouseEvent) => {
@@ -181,7 +201,9 @@ export default function LabCarousel() {
     const liveRegion = document.getElementById('aria-live-region');
     if (liveRegion) {
       liveRegion.textContent = announcement;
-      setTimeout(() => { liveRegion.textContent = ''; }, 1000);
+      setTimeout(() => {
+        liveRegion.textContent = '';
+      }, 1000);
     }
   }, []);
 
@@ -190,20 +212,31 @@ export default function LabCarousel() {
   }, []);
 
   // Apply FX only if enabled AND environment allows it
-  const fxActive = fx.enabled && shouldEnableFx(prefersReduced);
-  
+  // TEMP: Force FX on for testing (bypass hardware/motion checks)
+  const fxActive = fx.enabled; // && shouldEnableFx(prefersReduced);
+
+  // Debug: log the FX state
+  console.log('FX Debug:', {
+    'fx.enabled': fx.enabled,
+    prefersReduced: prefersReduced,
+    shouldEnableFx: shouldEnableFx(prefersReduced),
+    fxActive: fxActive,
+    hardwareConcurrency: navigator.hardwareConcurrency,
+  });
+
   return (
     <>
-      <section className={`lab-section ${fxActive ? 'lab-fx--on' : ''}`} aria-label="Project showcase">
+      <section
+        className={`lab-section ${fxActive ? 'lab-fx--on' : ''}`}
+        aria-label="Project showcase"
+      >
         <div className="mb-6">
           <button
             type="button"
             className="px-4 py-2 border border-white/80 rounded-md hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white"
             aria-pressed={isGridView}
             aria-label={
-              isGridView
-                ? 'Switch to immersive 3D carousel view'
-                : 'Switch to accessible grid view'
+              isGridView ? 'Switch to immersive 3D carousel view' : 'Switch to accessible grid view'
             }
             onClick={() => setIsGridView((v) => !v)}
           >
@@ -216,7 +249,7 @@ export default function LabCarousel() {
         {!isGridView ? (
           <>
             {/* Skip link for keyboard users */}
-            <a 
+            <a
               href="#skip-to-grid"
               className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded"
               onClick={(e) => {
@@ -227,52 +260,65 @@ export default function LabCarousel() {
             >
               Skip 3D view
             </a>
-            <div 
-            className={`lab-root ${fxActive && fx.scanlines ? 'lab-scanlines' : ''}`}
-            style={{ ['--rotation' as string]: `${rotationDeg}deg` }}
-          >
             <div
-              ref={containerRef}
-              className="lab-carousel"
-              data-testid="lab-carousel"
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              {...handlers}
-              style={{
-                cursor: dragging ? 'grabbing' : 'grab',
-                animation: 'none', // We control rotation via --rotation now
-                transform: `rotateY(var(--rotation))`,
-              }}
+              className={`lab-root ${fxActive && fx.scanlines ? 'lab-scanlines' : ''}`}
+              style={{ ['--rotation' as string]: `${rotationDeg}deg` }}
             >
-              {projects.map((p, i) => {
-                // Use CSS variables for CSP-safe transforms
-                return (
-                  <div
-                    key={p.href}
-                    className="lab-tile"
-                    data-testid="lab-tile"
-                    style={{
-                      ['--tile-index' as string]: String(i),
-                      ['--tile-angle' as string]: `${angleDeg}deg`,
-                      ['--radius' as string]: `${radius}px`,
-                      transform: `rotateY(calc(var(--tile-index) * var(--tile-angle))) translateZ(var(--radius))`,
-                      ...(fxActive && fx.depthFade ? { ['--depthFactor' as string]: String(depthForIndex(i)) } : {})
-                    }}
-                  >
-                    <LabTile project={p} onTileClick={(e) => handleTileClick(i, e)} fxEnabled={fxActive} />
-                  </div>
-                );
-              })}
+              <div
+                ref={containerRef}
+                className="lab-carousel"
+                data-testid="lab-carousel"
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                {...handlers}
+                style={{
+                  cursor: dragging ? 'grabbing' : 'grab',
+                  animation: 'none', // We control rotation via --rotation now
+                  transform: `rotateY(var(--rotation))`,
+                }}
+              >
+                {projects.map((p, i) => {
+                  // Use CSS variables for CSP-safe transforms
+                  return (
+                    <div
+                      key={p.href}
+                      className="lab-tile"
+                      data-testid="lab-tile"
+                      style={{
+                        ['--tile-index' as string]: String(i),
+                        ['--tile-angle' as string]: `${angleDeg}deg`,
+                        ['--radius' as string]: `${radius}px`,
+                        transform: `rotateY(calc(var(--tile-index) * var(--tile-angle))) translateZ(var(--radius))`,
+                        ...(fxActive && fx.depthFade
+                          ? { ['--depthFactor' as string]: String(depthForIndex(i)) }
+                          : {}),
+                      }}
+                      data-depth={
+                        fxActive && fx.depthFade ? depthForIndex(i).toFixed(2) : undefined
+                      }
+                    >
+                      <LabTile
+                        project={p}
+                        onTileClick={(e) => handleTileClick(i, e)}
+                        fxEnabled={fxActive}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
           </>
         ) : (
           <div className="lab-grid" role="region" aria-label="Project grid">
             {projects.map((p, i) => (
               <div key={p.href} className="lab-grid-item" data-testid="lab-tile">
-                <LabTile project={p} onTileClick={(e) => handleTileClick(i, e)} fxEnabled={fxActive} />
+                <LabTile
+                  project={p}
+                  onTileClick={(e) => handleTileClick(i, e)}
+                  fxEnabled={fxActive}
+                />
               </div>
             ))}
           </div>
@@ -284,14 +330,9 @@ export default function LabCarousel() {
         onClose={closeLightbox}
         project={activeIndex !== null ? (projects[activeIndex] ?? null) : null}
       />
-      
+
       {/* ARIA live region for announcements */}
-      <div 
-        id="aria-live-region" 
-        className="sr-only" 
-        aria-live="polite" 
-        aria-atomic="true"
-      />
+      <div id="aria-live-region" className="sr-only" aria-live="polite" aria-atomic="true" />
     </>
   );
 }

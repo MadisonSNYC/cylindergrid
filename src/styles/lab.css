@@ -25,8 +25,8 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 16rem;   /* Tailwind w-64 equivalent */
-  height: 10rem;  /* Tailwind h-40 equivalent */
+  width: 16rem; /* Tailwind w-64 equivalent */
+  height: 10rem; /* Tailwind h-40 equivalent */
   transform-style: preserve-3d;
   backface-visibility: hidden;
   translate: -50% -50%; /* center anchor point */
@@ -41,9 +41,11 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: .75rem;
+  border-radius: 0.75rem;
   filter: grayscale(100%);
-  transition: filter .25s ease, transform .25s ease;
+  transition:
+    filter 0.25s ease,
+    transform 0.25s ease;
 }
 
 /* Hover == Focus parity (accessibility) */
@@ -55,12 +57,14 @@
 .lab-link:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 4px;
-  border-radius: .5rem;
+  border-radius: 0.5rem;
 }
 
 /* Reduced motion: stop spinning */
 @media (prefers-reduced-motion: reduce) {
-  .lab-carousel { animation: none !important; }
+  .lab-carousel {
+    animation: none !important;
+  }
   .lab-img {
     transition: none !important;
   }
@@ -77,7 +81,7 @@
 .lab-grid-item {
   aspect-ratio: 16 / 10;
 }
-.lab-grid-item .lab-img { 
+.lab-grid-item .lab-img {
   height: 100%;
   width: 100%;
 }
@@ -85,12 +89,14 @@
 .lab-grid-item a:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 3px;
-  border-radius: .5rem;
+  border-radius: 0.5rem;
 }
 
 /* Keyframes */
 @keyframes lab-spin {
-  to { transform: rotateY(360deg); }
+  to {
+    transform: rotateY(360deg);
+  }
 }
 
 /* -------- Lightbox Modal -------- */
@@ -199,16 +205,20 @@
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
-  from { 
+  from {
     opacity: 0;
     transform: scale(0.95);
   }
-  to { 
+  to {
     opacity: 1;
     transform: scale(1);
   }
@@ -220,11 +230,11 @@
   .lightbox-dialog.no-motion {
     animation: none !important;
   }
-  
+
   .lightbox-backdrop.no-motion {
     opacity: 1;
   }
-  
+
   .lightbox-dialog.no-motion {
     opacity: 1;
     transform: scale(1);
@@ -235,21 +245,23 @@
 /* Container modifier toggled at runtime: .lab-fx--on on .lab-section or .lab-root */
 
 /* 1) Scanlines: subtle repeating linear gradient overlay, non-blocking repaint (composited) */
+.lab-fx--on .lab-scanlines {
+  position: relative;
+}
 .lab-fx--on .lab-scanlines::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      rgba(255,255,255,0.035) 0px,
-      rgba(255,255,255,0.035) 1px,
-      rgba(0,0,0,0) 2px,
-      rgba(0,0,0,0) 3px
-    );
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.05) 0px,
+    rgba(255, 255, 255, 0.05) 1px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0) 4px
+  );
   mix-blend-mode: screen;
-  opacity: 0.35;
+  opacity: 0.8;
   z-index: 1;
 }
 
@@ -260,41 +272,66 @@
 }
 .lab-fx--on .lab-link::before,
 .lab-fx--on .lab-link::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
-  border-radius: .75rem;
+  border-radius: 0.75rem;
   opacity: 0;
-  transition: opacity .15s ease, transform .15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
   background: var(--thumb-url) center/cover no-repeat;
   filter: saturate(140%);
   will-change: transform, opacity;
   pointer-events: none;
 }
 .lab-fx--on .lab-link::before {
-  mix-blend-mode: screen;
+  mix-blend-mode: multiply;
   /* red channel offset */
-  transform: translateX(-0.6px);
-  box-shadow: 0 0 0 0 rgba(255,0,0,0.6);
+  transform: translateX(-2px);
+  filter: sepia(100%) saturate(200%) hue-rotate(295deg);
 }
 .lab-fx--on .lab-link::after {
   mix-blend-mode: screen;
   /* blue channel offset */
-  transform: translateX(0.6px);
-  box-shadow: 0 0 0 0 rgba(0,140,255,0.6);
+  transform: translateX(2px);
+  filter: sepia(100%) saturate(200%) hue-rotate(180deg);
 }
 .lab-fx--on .lab-link:is(:hover, :focus) .lab-img {
-  transform: scale(1.02);
+  transform: scale(1.05);
+  filter: contrast(1.1) brightness(1.05);
 }
 .lab-fx--on .lab-link:is(:hover, :focus)::before,
 .lab-fx--on .lab-link:is(:hover, :focus)::after {
-  opacity: 0.55;
+  opacity: 0.7;
 }
 
-/* 3) Depth fade: far tiles down-weighted to hint depth without expensive blur */
+/* 3) Depth fade: far tiles down-weighted more aggressively, optional subtle blur */
 .lab-fx--on .lab-tile {
-  /* expects tile to set --depthFactor in [0..1]; 1=front, 0=far */
-  opacity: calc(0.55 + (var(--depthFactor, 1) * 0.45));
+  /* --depthFactor in [0..1]; 1=front, 0=far */
+  opacity: calc(0.35 + (var(--depthFactor, 1) * 0.65));
+  filter: blur(calc((1 - var(--depthFactor, 1)) * 1.2px))
+    brightness(calc(0.4 + (var(--depthFactor, 1) * 0.6)))
+    contrast(calc(0.5 + (var(--depthFactor, 1) * 0.5)))
+    saturate(calc(0.3 + (var(--depthFactor, 1) * 0.7)));
+  transition:
+    opacity 0.3s ease,
+    filter 0.3s ease;
+}
+
+/* Debug: Show depth factor as a visual indicator */
+.lab-fx--on .lab-tile::after {
+  content: attr(data-depth);
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: rgba(255, 255, 255, 0.8);
+  color: black;
+  padding: 2px 4px;
+  font-size: 10px;
+  border-radius: 2px;
+  z-index: 10;
+  pointer-events: none;
 }
 
 /* 4) Reduced motion: force-disable RGB split animation & scanlines */
@@ -304,5 +341,7 @@
     transition: none !important;
     opacity: 0 !important;
   }
-  .lab-fx--on .lab-scanlines::before { display: none !important; }
+  .lab-fx--on .lab-scanlines::before {
+    display: none !important;
+  }
 }
