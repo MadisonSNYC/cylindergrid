@@ -61,6 +61,9 @@
 /* Reduced motion: stop spinning */
 @media (prefers-reduced-motion: reduce) {
   .lab-carousel { animation: none !important; }
+  .lab-img {
+    transition: none !important;
+  }
 }
 
 /* Fallback grid (toggle or reduced motion default) */
@@ -71,7 +74,19 @@
   gap: 1rem;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 }
-.lab-grid-item .lab-img { height: auto; }
+.lab-grid-item {
+  aspect-ratio: 16 / 10;
+}
+.lab-grid-item .lab-img { 
+  height: 100%;
+  width: 100%;
+}
+/* Ensure keyboard-only users get clear indication on grid items too */
+.lab-grid-item a:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+  border-radius: .5rem;
+}
 
 /* Keyframes */
 @keyframes lab-spin {

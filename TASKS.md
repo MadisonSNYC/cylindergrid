@@ -38,7 +38,7 @@ touch .github/PULL_REQUEST_TEMPLATE.md
 **Acceptance Criteria:** Templates enforce CSP, a11y, and performance checks
 **Rollback:** `rm -rf .github`
 
-## Phase 1: Static Cylinder Implementation
+## Phase 1: Static Cylinder Implementation ✅
 
 ### Task 1.1: Project Scaffold
 **Goal:** Create base file structure for the carousel
@@ -246,7 +246,118 @@ pnpm preview
 - CLS < 0.1
 **Rollback:** `git checkout -- src/components/lab/`
 
-## Phase 3: View Toggle (Carousel ↔ Grid)
+## Phase 3: View Toggle (Carousel ↔ Grid) ✅
+
+### Task 3.1: Skip Link Implementation ✅
+**Goal:** Add accessible skip navigation link
+**Steps:**
+1. Create skip link in header
+2. Position off-screen until focused
+3. Link to carousel main content
+4. Test with keyboard navigation
+
+**Commands:**
+```bash
+pnpm dev
+# Tab to test skip link
+```
+
+**Expected Output:** Skip link appears on Tab, jumps to main content
+**Acceptance Criteria:**
+- Skip link visible on focus
+- Properly positioned and styled
+- Focus moves to carousel
+- Keyboard-only flow verified
+**Rollback:** `git checkout -- src/components/`
+
+### Task 3.2: Reduced Motion Defaults ✅
+**Goal:** Implement reduced motion preferences
+**Steps:**
+1. Add useReducedMotionPref hook
+2. Default to grid view when prefers-reduced-motion
+3. Disable auto-rotation by default
+4. Only enable 3D rotation on user interaction
+
+**Commands:**
+```bash
+npm run dev
+# Test with prefers-reduced-motion enabled
+```
+
+**Expected Output:** Static experience by default, enhanced on user action
+**Acceptance Criteria:**
+- Reduced motion defaults respected
+- No auto-spin unless user-initiated
+- Grid region and aspect-ratio guards in place
+- CLS < 0.1 verified
+**Rollback:** `git checkout -- src/hooks/useReducedMotionPref.ts`
+
+### Task 3.3: Playwright + Axe Integration ✅
+**Goal:** Add automated accessibility testing
+**Steps:**
+1. Install @axe-core/playwright
+2. Create lab.a11y.spec.ts test file
+3. Test keyboard navigation paths
+4. Verify ARIA patterns
+5. Check focus management
+
+**Commands:**
+```bash
+npm install -D @axe-core/playwright
+npx playwright test tests/lab.a11y.spec.ts
+```
+
+**Expected Output:** All accessibility tests passing
+**Acceptance Criteria:**
+- Playwright + axe tests passing
+- Keyboard navigation verified
+- Focus trap in modal tested
+- Skip link behavior validated
+**Rollback:** `git checkout -- tests/lab.a11y.spec.ts`
+
+### Task 3.4: State Machine Implementation ✅
+**Goal:** Implement proper state management for interactions
+**Steps:**
+1. Define state machine (idle, interacting, modal-open)
+2. Implement state transitions
+3. Add ARIA live region for announcements
+4. Test state persistence
+
+**Commands:**
+```bash
+pnpm typecheck
+pnpm test
+```
+
+**Expected Output:** Predictable state management
+**Acceptance Criteria:**
+- Clear state transitions
+- ARIA live regions announce changes
+- Modal state properly managed
+- Focus restoration working
+**Rollback:** `git checkout -- src/components/lab/`
+
+### Task 3.5: Lighthouse CI Configuration ✅
+**Goal:** Set up continuous performance monitoring
+**Steps:**
+1. Configure Lighthouse CI
+2. Set performance thresholds
+3. Add CI workflow
+4. Test CLS < 0.1 requirement
+
+**Commands:**
+```bash
+npx lighthouse http://localhost:5173 --view
+# Check Performance ≥ 90, CLS < 0.1
+```
+
+**Expected Output:** Lighthouse CI configured with thresholds
+**Acceptance Criteria:**
+- Performance score ≥ 90
+- CLS < 0.1 enforced
+- Lighthouse CI configured
+- E2E test scenarios documented
+**Rollback:** `git checkout -- playwright.config.ts`
 
 ### Task 3.1: Grid View Component
 **Goal:** Create alternative grid layout

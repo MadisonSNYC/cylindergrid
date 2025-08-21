@@ -392,6 +392,137 @@ Content-Security-Policy:
 - URLs validated and sanitized
 - External links use `rel="noopener noreferrer"`
 
+## State Machine Architecture
+
+### Application States
+
+The carousel implements a finite state machine to manage interaction states:
+
+```typescript
+type CarouselState = 'idle' | 'interacting' | 'modal-open';
+
+interface StateTransitions {
+  idle: {
+    onMouseEnter: 'interacting';
+    onFocus: 'interacting';
+    onTileClick: 'modal-open';
+  };
+  interacting: {
+    onMouseLeave: 'idle';
+    onBlur: 'idle';
+    onTileClick: 'modal-open';
+  };
+  'modal-open': {
+    onModalClose: 'idle';
+    onEscape: 'idle';
+  };
+}
+```
+
+### Skip Link Implementation
+
+```tsx
+const SkipLink: React.FC = () => {
+  return (
+    <a 
+      href="#main-carousel" 
+      className="skip-link"
+      onFocus={(e) => e.target.scrollIntoView()}
+    >
+      Skip to main content
+    </a>
+  );
+};
+
+// CSS for skip link
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  z-index: 1000;
+  padding: 8px;
+  background: var(--focus-color);
+  color: white;
+  text-decoration: none;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+```
+
+### ARIA Live Region Usage
+
+```tsx
+const LiveRegion: React.FC = () => {
+  const [announcement, setAnnouncement] = useState('');
+  
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      className="sr-only"
+    >
+      {announcement}
+    </div>
+  );
+};
+
+// Usage for state announcements
+const announceStateChange = (state: CarouselState, context?: string) => {
+  const messages = {
+    idle: 'Carousel ready for interaction',
+    interacting: `Rotating to ${context}`,
+    'modal-open': `${context} project opened in detail view`
+  };
+  
+  setAnnouncement(messages[state]);
+};
+```
+
+### CSS Variables for CSP-Safe Transforms
+
+Enhanced approach for strict Content Security Policy compliance:
+
+```css
+/* Dynamic CSS variables without inline styles */
+.lab-carousel {
+  --rotation: 0deg;
+  --tile-count: 8;
+  --radius: 400px;
+  transform: rotateY(var(--rotation));
+}
+
+.lab-tile {
+  --tile-index: 0;
+  --angle-step: calc(360deg / var(--tile-count));
+  transform: 
+    rotateY(calc(var(--tile-index) * var(--angle-step)))
+    translateZ(var(--radius));
+}
+```
+
+```typescript
+// Update via dataset attributes
+const updateCarouselTransforms = (rotation: number, tileCount: number) => {
+  const carousel = document.querySelector('.lab-carousel') as HTMLElement;
+  if (carousel) {
+    carousel.dataset.rotation = rotation.toString();
+    carousel.dataset.tileCount = tileCount.toString();
+    carousel.dataset.radius = calculateRadius(tileCount).toString();
+  }
+};
+
+// CSS reads from data attributes
+.lab-carousel {
+  --rotation: attr(data-rotation deg, 0deg);
+  --tile-count: attr(data-tile-count number, 8);
+  --radius: attr(data-radius px, 400px);
+}
+```
+
 ## Testing Strategy
 
 ### Unit Tests

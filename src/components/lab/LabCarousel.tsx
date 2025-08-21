@@ -26,7 +26,7 @@ export default function LabCarousel() {
 
   // Rotation state
   const [rotationDeg, setRotationDeg] = useState(0);
-  const [isAutoSpinning, setIsAutoSpinning] = useState(!prefersReduced);
+  const [isAutoSpinning, setIsAutoSpinning] = useState(!prefersReduced && !isGridView);
   const [velocity, setVelocity] = useState(0);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
@@ -41,11 +41,11 @@ export default function LabCarousel() {
 
   // Effect to switch to grid view if reduced motion is preferred
   useEffect(() => {
-    if (prefersReduced) {
+    if (prefersReduced && !isGridView) {
       setIsGridView(true);
       setIsAutoSpinning(false);
     }
-  }, [prefersReduced]);
+  }, [prefersReduced, isGridView]);
 
   // Save view preference
   useEffect(() => {
@@ -135,10 +135,10 @@ export default function LabCarousel() {
       setVelocity((v) => v * 0.95); // Damping
     }
 
-    // Auto-resume spinning after idle
+    // Auto-resume spinning after idle (only if not reduced motion)
     const idleTime = Date.now() - lastInteractionTime.current;
     if (!prefersReduced && !isGridView && !dragging && !isHovered.current && 
-        !isFocused.current && idleTime > 2000 && !isAutoSpinning) {
+        !isFocused.current && idleTime > 2000 && !isAutoSpinning && activeIndex === null) {
       setIsAutoSpinning(true);
     }
 
@@ -158,6 +158,13 @@ export default function LabCarousel() {
   const handleTileClick = useCallback((index: number, e: React.MouseEvent) => {
     e.preventDefault();
     setActiveIndex(index);
+    // Announce to screen readers
+    const announcement = `Opened project: ${projects[index].title}`;
+    const liveRegion = document.getElementById('aria-live-region');
+    if (liveRegion) {
+      liveRegion.textContent = announcement;
+      setTimeout(() => { liveRegion.textContent = ''; }, 1000);
+    }
   }, []);
 
   const closeLightbox = useCallback(() => {
@@ -166,7 +173,7 @@ export default function LabCarousel() {
 
   return (
     <>
-      <section className="lab-section">
+      <section className="lab-section" aria-label="Project showcase">
         <div className="mb-6">
           <button
             type="button"
@@ -184,7 +191,20 @@ export default function LabCarousel() {
         </div>
 
         {!isGridView ? (
-          <div 
+          <>
+            {/* Skip link for keyboard users */}
+            <a 
+              href="#skip-to-grid"
+              className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded"
+              onClick={(e) => {
+                e.preventDefault();
+                setIsGridView(true);
+                // Focus will move to grid via useEffect
+              }}
+            >
+              Skip 3D view
+            </a>
+            <div 
             className="lab-root"
             style={{ ['--rotation' as string]: `${rotationDeg}deg` }}
           >
@@ -223,8 +243,9 @@ export default function LabCarousel() {
               })}
             </div>
           </div>
+          </>
         ) : (
-          <div className="lab-grid">
+          <div className="lab-grid" role="region" aria-label="Project grid">
             {projects.map((p, i) => (
               <div key={p.href} className="lab-grid-item" data-testid="lab-tile">
                 <LabTile project={p} onTileClick={(e) => handleTileClick(i, e)} />
@@ -238,6 +259,14 @@ export default function LabCarousel() {
         open={activeIndex !== null}
         onClose={closeLightbox}
         project={activeIndex !== null ? projects[activeIndex] : null}
+      />
+      
+      {/* ARIA live region for announcements */}
+      <div 
+        id="aria-live-region" 
+        className="sr-only" 
+        aria-live="polite" 
+        aria-atomic="true"
       />
     </>
   );
