@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/components/lab/labcarousel.tsx","./src/components/lab/labtile.tsx","./src/data/labprojects.ts","./src/hooks/usereducedmotionpref.ts","./src/pages/lab.tsx"],"version":"5.9.2"}
