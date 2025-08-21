@@ -1,0 +1,323 @@
+# Ashfall Lab 3D Carousel — Task Breakdown
+
+## Phase 0: Planning & Documentation
+
+### Task 0.1: Setup Project Documentation
+**Goal:** Establish comprehensive project documentation
+**Steps:**
+1. Create TASKS.md with detailed micro-tasks
+2. Create README.md with project overview
+3. Create ARCHITECTURE.md with technical design
+4. Create CONTRIBUTING.md with guidelines
+5. Create QA_PLAN.md with quality assurance strategy
+6. Create ACCESSIBILITY.md with a11y requirements
+
+**Commands:**
+```bash
+touch TASKS.md README.md ARCHITECTURE.md CONTRIBUTING.md QA_PLAN.md ACCESSIBILITY.md
+```
+
+**Expected Output:** Six documentation files created
+**Acceptance Criteria:** All docs contain complete initial content
+**Rollback:** `git reset --hard HEAD~1`
+
+### Task 0.2: Setup GitHub Templates
+**Goal:** Create PR and issue templates for consistent workflow
+**Steps:**
+1. Create .github directory
+2. Add PULL_REQUEST_TEMPLATE.md
+3. Add issue templates
+
+**Commands:**
+```bash
+mkdir -p .github
+touch .github/PULL_REQUEST_TEMPLATE.md
+```
+
+**Expected Output:** Templates in .github directory
+**Acceptance Criteria:** Templates enforce CSP, a11y, and performance checks
+**Rollback:** `rm -rf .github`
+
+## Phase 1: Static Cylinder Implementation
+
+### Task 1.1: Project Scaffold
+**Goal:** Create base file structure for the carousel
+**Steps:**
+1. Create component directories
+2. Add LabCarousel.tsx component
+3. Add LabTile.tsx component
+4. Setup hooks directory
+5. Create data structure for projects
+
+**Commands:**
+```bash
+mkdir -p src/components/lab src/hooks src/data src/styles
+touch src/components/lab/LabCarousel.tsx
+touch src/components/lab/LabTile.tsx
+touch src/hooks/useReducedMotionPref.ts
+touch src/data/labProjects.ts
+touch src/styles/lab.css
+```
+
+**Expected Output:** Complete directory structure with empty files
+**Acceptance Criteria:** All paths match architecture spec
+**Rollback:** `git clean -fd src/`
+
+### Task 1.2: Static Cylinder Math Implementation
+**Goal:** Implement radius calculation and tile positioning
+**Steps:**
+1. Calculate radius from tile count
+2. Apply rotateY transforms per tile
+3. Position tiles around cylinder
+4. Use CSS variables for CSP compliance
+
+**Commands:**
+```bash
+pnpm dev
+# Verify in browser: http://localhost:5173
+```
+
+**Expected Output:** Tiles arranged in cylinder formation
+**Acceptance Criteria:** 
+- Radius = width / (2 * tan(π / tileCount))
+- Each tile rotated by index * (360° / tileCount)
+- Transform-only positioning (no left/top)
+**Rollback:** `git checkout -- src/components/lab/`
+
+### Task 1.3: Basic Rotation Controls
+**Goal:** Add left/right navigation buttons
+**Steps:**
+1. Create rotation state (0-360°)
+2. Add left/right buttons
+3. Implement 360°/tileCount rotation steps
+4. Apply container transform
+
+**Commands:**
+```bash
+pnpm lint
+pnpm typecheck
+```
+
+**Expected Output:** Functional rotation controls
+**Acceptance Criteria:** 
+- Smooth rotation via transform
+- Keyboard support (ArrowLeft/ArrowRight)
+- Visible focus states
+**Rollback:** `git checkout -- src/components/lab/LabCarousel.tsx`
+
+## Phase 2: Lightbox Modal
+
+### Task 2.1: Modal Component
+**Goal:** Create accessible lightbox modal
+**Steps:**
+1. Create LabLightbox.tsx component
+2. Implement focus trap
+3. Add close on Escape
+4. Portal rendering to body
+
+**Commands:**
+```bash
+touch src/components/lab/LabLightbox.tsx
+pnpm dev
+```
+
+**Expected Output:** Accessible modal overlay
+**Acceptance Criteria:**
+- Focus trapped within modal
+- Closes on Escape key
+- Background scroll locked
+- ARIA attributes present
+**Rollback:** `git checkout -- src/components/lab/LabLightbox.tsx`
+
+### Task 2.2: Gallery Integration
+**Goal:** Connect tiles to lightbox
+**Steps:**
+1. Add click handlers to tiles
+2. Pass project data to lightbox
+3. Implement image gallery in lightbox
+4. Add navigation within lightbox
+
+**Commands:**
+```bash
+pnpm build
+pnpm preview
+```
+
+**Expected Output:** Tiles open lightbox with project details
+**Acceptance Criteria:**
+- Smooth open/close animations
+- Keyboard navigation works
+- Images lazy-loaded
+- CLS < 0.1
+**Rollback:** `git checkout -- src/components/lab/`
+
+## Phase 3: View Toggle (Carousel ↔ Grid)
+
+### Task 3.1: Grid View Component
+**Goal:** Create alternative grid layout
+**Steps:**
+1. Create LabGrid.tsx component
+2. Implement CSS Grid layout
+3. Share same data source
+4. Match tile interaction patterns
+
+**Commands:**
+```bash
+touch src/components/lab/LabGrid.tsx
+```
+
+**Expected Output:** Responsive grid layout
+**Acceptance Criteria:**
+- Same tiles, different layout
+- Responsive columns (auto-fit)
+- Maintains keyboard order
+**Rollback:** `git checkout -- src/components/lab/LabGrid.tsx`
+
+### Task 3.2: Toggle Implementation
+**Goal:** Add view switcher control
+**Steps:**
+1. Create ViewToggle component
+2. Add state management for view mode
+3. Implement smooth transitions
+4. Persist preference in localStorage
+
+**Commands:**
+```bash
+pnpm test
+pnpm build
+```
+
+**Expected Output:** Functional view toggle
+**Acceptance Criteria:**
+- Toggle has aria-pressed state
+- Smooth transition between views
+- Preference persists on reload
+- Reduced motion respected
+**Rollback:** `git checkout -- src/components/lab/`
+
+## Phase 4: Auto-rotation & Pause
+
+### Task 4.1: Auto-rotation Logic
+**Goal:** Implement automatic carousel rotation
+**Steps:**
+1. Add rotation interval (5s default)
+2. Implement requestAnimationFrame loop
+3. Calculate smooth rotation increments
+4. Add configuration options
+
+**Commands:**
+```bash
+pnpm dev
+# Check DevTools Performance tab for FPS
+```
+
+**Expected Output:** Smooth continuous rotation
+**Acceptance Criteria:**
+- 60 FPS maintained
+- Configurable speed
+- Respects reduced motion
+- GPU-accelerated transforms only
+**Rollback:** `git checkout -- src/hooks/useAutoRotation.ts`
+
+### Task 4.2: Pause on Interaction
+**Goal:** Stop rotation during user interaction
+**Steps:**
+1. Detect hover/focus on tiles
+2. Pause on manual navigation
+3. Resume after delay
+4. Add play/pause button
+
+**Commands:**
+```bash
+pnpm lint
+pnpm build
+```
+
+**Expected Output:** Smart pause behavior
+**Acceptance Criteria:**
+- Pauses on any interaction
+- Resumes after 10s idle
+- Play/pause button accessible
+- State clearly indicated
+**Rollback:** `git checkout -- src/components/lab/LabCarousel.tsx`
+
+## Phase 5: Performance & Polish
+
+### Task 5.1: Image Optimization
+**Goal:** Optimize image loading performance
+**Steps:**
+1. Implement lazy loading
+2. Add loading placeholders
+3. Use srcset for responsive images
+4. Preload critical images
+
+**Commands:**
+```bash
+npx lighthouse http://localhost:5173 --view
+```
+
+**Expected Output:** Optimized image loading
+**Acceptance Criteria:**
+- CLS < 0.1
+- LCP < 2.5s
+- No layout shift on load
+- Progressive enhancement
+**Rollback:** `git checkout -- src/components/lab/LabTile.tsx`
+
+### Task 5.2: Animation Polish
+**Goal:** Refine all animations and transitions
+**Steps:**
+1. Add spring physics to rotation
+2. Implement gesture support
+3. Fine-tune timing functions
+4. Add subtle tile hover effects
+
+**Commands:**
+```bash
+pnpm analyze
+pnpm build
+```
+
+**Expected Output:** Polished, professional animations
+**Acceptance Criteria:**
+- Natural motion feel
+- No jank or stutter
+- Touch-friendly on mobile
+- Respects user preferences
+**Rollback:** `git checkout -- src/styles/lab.css`
+
+## Testing Checklist
+
+Run these checks after each phase:
+
+```bash
+# Lint & Type Check
+pnpm lint
+pnpm typecheck
+
+# Build & Preview
+pnpm build
+pnpm preview
+
+# Performance
+npx lighthouse http://localhost:5173 --view
+
+# Accessibility
+# Manual: Test with keyboard only
+# Manual: Test with screen reader
+# Manual: Test with reduced motion enabled
+```
+
+## Rollback Strategy
+
+Each task includes specific rollback commands. For phase-level rollback:
+
+```bash
+# Rollback entire phase
+git tag -a phase-X-backup -m "Backup before rollback"
+git reset --hard <previous-phase-tag>
+
+# Nuclear option (full reset)
+git fetch origin
+git reset --hard origin/main
+```
