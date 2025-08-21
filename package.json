@@ -1,6 +1,6 @@
 {
   "name": "cylindergrid",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Ashfall Lab 3D Carousel - A performant, accessible cylindrical carousel component",
   "type": "module",
   "scripts": {
