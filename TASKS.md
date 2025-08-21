@@ -63,6 +63,17 @@ touch src/styles/lab.css
 **Acceptance Criteria:** All paths match architecture spec
 **Rollback:** `git clean -fd src/`
 
+**Run These Checks:**
+```bash
+# Verify structure created
+ls -la src/components/lab/
+ls -la src/hooks/
+ls -la src/data/
+ls -la src/styles/
+
+# Expected: All directories exist with specified files
+```
+
 ### Task 1.2: Static Cylinder Math Implementation
 **Goal:** Implement radius calculation and tile positioning
 **Steps:**
@@ -83,6 +94,21 @@ pnpm dev
 - Each tile rotated by index * (360° / tileCount)
 - Transform-only positioning (no left/top)
 **Rollback:** `git checkout -- src/components/lab/`
+
+**Run These Checks:**
+```bash
+# Verify transforms are GPU-accelerated
+npm run dev
+# Open Chrome DevTools > Rendering > Show layer borders
+# Expected: Tiles on separate composite layers
+
+# Check for layout shifts
+npx lighthouse http://localhost:5173 \
+  --only-audits=cumulative-layout-shift \
+  --quiet \
+  --chrome-flags="--headless"
+# Expected: CLS < 0.1
+```
 
 ### Task 1.3: Basic Rotation Controls
 **Goal:** Add left/right navigation buttons

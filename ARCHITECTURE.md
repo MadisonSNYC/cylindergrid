@@ -60,41 +60,114 @@ Instead of inline styles, we use CSS variables for dynamic values:
   transform: rotateY(var(--rotation));
 }
 
-/* Tile variables */
+/* Enhanced tile transform with container rotation */
 .lab-tile {
   --tile-index: 0;
   --tile-angle: calc(360deg / var(--tile-count));
   transform: 
-    rotateY(calc(var(--tile-index) * var(--tile-angle)))
+    rotateY(calc(var(--tile-index) * var(--tile-angle) + var(--rotation)))
     translateZ(var(--radius));
 }
 ```
 
-### React Implementation
+### React Implementation (Strictest CSP)
 
 ```tsx
-// Setting CSS variables safely without inline styles
+// Method 1: CSS Variables via dataset (no style attribute)
 const LabCarousel: React.FC = ({ tiles }) => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [rotation, setRotation] = useState(0);
   
-  // Update CSS variables via ref
-  useEffect(() => {
-    if (carouselRef.current) {
-      carouselRef.current.style.setProperty('--rotation', `${rotation}deg`);
-      carouselRef.current.style.setProperty('--tile-count', tiles.length);
-      carouselRef.current.style.setProperty('--radius', calculateRadius(tiles.length));
-    }
-  }, [rotation, tiles.length]);
-  
   return (
-    <div ref={carouselRef} className="lab-carousel">
+    <div 
+      ref={carouselRef} 
+      className="lab-carousel"
+      data-rotation={rotation}
+      data-tile-count={tiles.length}
+      data-radius={calculateRadius(tiles.length)}
+    >
       {tiles.map((tile, index) => (
         <div
           key={tile.id}
           className="lab-tile"
-          style={{ '--tile-index': index } as React.CSSProperties}
+          data-tile-index={index}
         >
+          {tile.content}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// CSS to read data attributes
+.lab-carousel {
+  --rotation: attr(data-rotation deg);
+  --tile-count: attr(data-tile-count number);
+  --radius: attr(data-radius px);
+}
+
+.lab-tile {
+  --tile-index: attr(data-tile-index number);
+}
+```
+
+### Method 2: Generated Stylesheet (Most Compatible)
+
+```tsx
+// Generate stylesheet for current state
+const generateCarouselStyles = (rotation: number, tileCount: number, radius: number): string => {
+  const angleStep = 360 / tileCount;
+  let styles = `
+    .lab-carousel {
+      --rotation: ${rotation}deg;
+      --tile-count: ${tileCount};
+      --radius: ${radius}px;
+      transform: rotateY(${rotation}deg);
+    }
+  `;
+  
+  for (let i = 0; i < tileCount; i++) {
+    styles += `
+      .lab-tile:nth-child(${i + 1}) {
+        --tile-index: ${i};
+        transform: 
+          rotateY(${i * angleStep}deg) 
+          translateZ(${radius}px);
+      }
+    `;
+  }
+  
+  return styles;
+};
+
+// Inject via style element
+const LabCarousel: React.FC = ({ tiles }) => {
+  const [rotation, setRotation] = useState(0);
+  const styleId = useRef(`carousel-styles-${Date.now()}`);
+  
+  useEffect(() => {
+    let styleEl = document.getElementById(styleId.current) as HTMLStyleElement;
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = styleId.current;
+      document.head.appendChild(styleEl);
+    }
+    
+    styleEl.textContent = generateCarouselStyles(
+      rotation,
+      tiles.length,
+      calculateRadius(tiles.length)
+    );
+    
+    return () => {
+      styleEl?.remove();
+    };
+  }, [rotation, tiles.length]);
+  
+  return (
+    <div className="lab-carousel">
+      {tiles.map((tile, index) => (
+        <div key={tile.id} className="lab-tile">
           {tile.content}
         </div>
       ))}
