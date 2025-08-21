@@ -685,18 +685,350 @@ return (
 );
 ```
 
+## Dialog Patterns
+
+### Focus Trap Implementation
+
+```typescript
+const useFocusTrap = (isOpen: boolean, containerRef: RefObject<HTMLElement>) => {
+  useEffect(() => {
+    if (!isOpen || !containerRef.current) return;
+    
+    const focusableElements = containerRef.current.querySelectorAll(
+      'a[href], button, textarea, input, select, [tabindex]:not([tabindex="-1"])'
+    );
+    
+    const firstElement = focusableElements[0] as HTMLElement;
+    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+    
+    const trapFocus = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+    };
+    
+    document.addEventListener('keydown', trapFocus);
+    firstElement?.focus();
+    
+    return () => document.removeEventListener('keydown', trapFocus);
+  }, [isOpen]);
+};
+```
+
+### ESC Handling and Focus Restoration
+
+```typescript
+const Lightbox: React.FC = ({ isOpen, onClose, returnFocusTo }) => {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocus = useRef<HTMLElement>();
+  
+  useEffect(() => {
+    if (isOpen) {
+      previousFocus.current = document.activeElement as HTMLElement;
+    } else if (previousFocus.current) {
+      previousFocus.current.focus();
+    }
+  }, [isOpen]);
+  
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+  
+  return isOpen ? (
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dialog-title"
+    >
+      {/* Dialog content */}
+    </div>
+  ) : null;
+};
+```
+
+## Skip Link Implementation
+
+### Component Implementation
+
+```tsx
+const SkipLink: React.FC = () => {
+  return (
+    <a 
+      href="#main-carousel" 
+      className="skip-link"
+      onClick={focusMainContent}
+    >
+      Skip to main content
+    </a>
+  );
+};
+
+const focusMainContent = (e: React.MouseEvent) => {
+  e.preventDefault();
+  const mainContent = document.getElementById('main-carousel');
+  if (mainContent) {
+    mainContent.setAttribute('tabindex', '-1');
+    mainContent.focus();
+    mainContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};
+```
+
+### CSS Styling
+
+```css
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  z-index: 1000;
+  padding: 8px 16px;
+  background: var(--focus-color, #0066CC);
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: 600;
+  transition: top 0.2s ease-in-out;
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* Ensure skip link appears above all content */
+.skip-link:focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+```
+
+## Hover-Focus Parity Principle
+
+### Implementation Strategy
+
+All hover interactions must be replicated for focus states to ensure keyboard users have equal access.
+
+```css
+/* Apply same styles to both hover and focus */
+.lab-tile:hover,
+.lab-tile:focus-within {
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.lab-tile:hover .tile-overlay,
+.lab-tile:focus-within .tile-overlay {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Button interactions */
+.control-button:hover,
+.control-button:focus-visible {
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  transform: scale(1.1);
+}
+```
+
+### JavaScript Enhancement
+
+```typescript
+const TileComponent: React.FC = ({ tile }) => {
+  const [isActive, setIsActive] = useState(false);
+  
+  const handleMouseEnter = () => setIsActive(true);
+  const handleMouseLeave = () => setIsActive(false);
+  const handleFocus = () => setIsActive(true);
+  const handleBlur = () => setIsActive(false);
+  
+  return (
+    <div
+      className={`lab-tile ${isActive ? 'active' : ''}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      tabIndex={0}
+      role="button"
+      aria-label={`View ${tile.title} project details`}
+    >
+      {/* Tile content */}
+    </div>
+  );
+};
+```
+
+## Reduced Motion Policy
+
+### Default Behavior
+
+By default, the carousel respects user motion preferences and provides a static experience.
+
+```typescript
+const useReducedMotionDefaults = () => {
+  const [prefersReduced, setPrefersReduced] = useState(true); // Default to reduced
+  
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReduced(mediaQuery.matches);
+    
+    const handler = (e: MediaQueryListEvent) => setPrefersReduced(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+  
+  return prefersReduced;
+};
+```
+
+### Auto-Spin Policy
+
+```typescript
+const CarouselWithReducedMotion: React.FC = () => {
+  const prefersReducedMotion = useReducedMotionDefaults();
+  const [userInitiatedRotation, setUserInitiatedRotation] = useState(false);
+  
+  // Only enable auto-rotation if:
+  // 1. User doesn't prefer reduced motion, OR
+  // 2. User has explicitly interacted with rotation controls
+  const enableAutoRotation = !prefersReducedMotion || userInitiatedRotation;
+  
+  const handleUserRotation = () => {
+    setUserInitiatedRotation(true);
+  };
+  
+  return (
+    <div className={`lab-carousel ${prefersReducedMotion ? 'reduced-motion' : ''}`}>
+      {/* Carousel content */}
+    </div>
+  );
+};
+```
+
+### CSS Implementation
+
+```css
+/* Default: no auto-rotation, instant transitions */
+.lab-carousel {
+  transition: none;
+}
+
+.lab-tile {
+  animation: none;
+  transition: none;
+}
+
+/* Enhanced mode: smooth animations */
+.lab-carousel:not(.reduced-motion) {
+  transition: transform 300ms ease-out;
+}
+
+.lab-tile:not(.reduced-motion) {
+  transition: transform 200ms ease-out;
+}
+
+/* User preference override */
+@media (prefers-reduced-motion: no-preference) {
+  .lab-carousel.user-enhanced {
+    transition: transform 300ms ease-out;
+  }
+}
+```
+
+## ARIA Live Regions for Announcements
+
+### Implementation
+
+```typescript
+const useAnnouncement = () => {
+  const [announcement, setAnnouncement] = useState('');
+  const [assertive, setAssertive] = useState(false);
+  
+  const announce = (message: string, priority: 'polite' | 'assertive' = 'polite') => {
+    setAssertive(priority === 'assertive');
+    setAnnouncement(''); // Clear to ensure re-announcement
+    setTimeout(() => setAnnouncement(message), 100);
+  };
+  
+  return {
+    announce,
+    LiveRegion: (
+      <div
+        role="status"
+        aria-live={assertive ? 'assertive' : 'polite'}
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {announcement}
+      </div>
+    )
+  };
+};
+```
+
+### Usage Examples
+
+```typescript
+const LabCarousel: React.FC = () => {
+  const { announce, LiveRegion } = useAnnouncement();
+  
+  const rotateToNext = () => {
+    const newIndex = (currentIndex + 1) % tiles.length;
+    setCurrentIndex(newIndex);
+    announce(`Showing project ${newIndex + 1} of ${tiles.length}: ${tiles[newIndex].title}`);
+  };
+  
+  const openLightbox = (tile: Tile) => {
+    setSelectedTile(tile);
+    announce(`Opened ${tile.title} project in detail view`, 'assertive');
+  };
+  
+  const closeLightbox = () => {
+    setSelectedTile(null);
+    announce('Returned to project carousel');
+  };
+  
+  return (
+    <>
+      {LiveRegion}
+      {/* Carousel content */}
+    </>
+  );
+};
+```
+
 ## Resources
 
 ### Documentation
 - [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
 - [ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/)
 - [MDN Accessibility](https://developer.mozilla.org/en-US/docs/Web/Accessibility)
+- [Dialog (Modal) Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)
+- [Carousel Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/carousel/)
 
 ### Tools
 - [axe DevTools](https://www.deque.com/axe/)
 - [WAVE](https://wave.webaim.org/)
 - [NVDA Screen Reader](https://www.nvaccess.org/)
 - [Contrast Checker](https://webaim.org/resources/contrastchecker/)
+- [@axe-core/playwright](https://www.npmjs.com/package/@axe-core/playwright)
 
 ### Testing Services
 - [Accessibility Insights](https://accessibilityinsights.io/)

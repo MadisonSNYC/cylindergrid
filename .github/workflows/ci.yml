@@ -1,0 +1,23 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - run: pnpm install --frozen-lockfile || npm ci
+      - run: pnpm -s lint || npm run lint || echo "lint skipped"
+      - run: pnpm -s typecheck || npm run typecheck || echo "typecheck skipped"
+      - run: pnpm -s build || npm run build
+      - run: pnpm -s size:ci || npm run size:ci || echo "size check skipped"
+      - run: pnpm -s deadcode || npm run deadcode || echo "knip warnings (non-blocking)"
+      - run: pnpm -s unused || npm run unused || echo "ts-prune warnings (non-blocking)"

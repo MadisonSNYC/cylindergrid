@@ -38,7 +38,7 @@ touch .github/PULL_REQUEST_TEMPLATE.md
 **Acceptance Criteria:** Templates enforce CSP, a11y, and performance checks
 **Rollback:** `rm -rf .github`
 
-## Phase 1: Static Cylinder Implementation
+## Phase 1: Static Cylinder Implementation ✅
 
 ### Task 1.1: Project Scaffold
 **Goal:** Create base file structure for the carousel
@@ -63,6 +63,17 @@ touch src/styles/lab.css
 **Acceptance Criteria:** All paths match architecture spec
 **Rollback:** `git clean -fd src/`
 
+**Run These Checks:**
+```bash
+# Verify structure created
+ls -la src/components/lab/
+ls -la src/hooks/
+ls -la src/data/
+ls -la src/styles/
+
+# Expected: All directories exist with specified files
+```
+
 ### Task 1.2: Static Cylinder Math Implementation
 **Goal:** Implement radius calculation and tile positioning
 **Steps:**
@@ -83,6 +94,21 @@ pnpm dev
 - Each tile rotated by index * (360° / tileCount)
 - Transform-only positioning (no left/top)
 **Rollback:** `git checkout -- src/components/lab/`
+
+**Run These Checks:**
+```bash
+# Verify transforms are GPU-accelerated
+npm run dev
+# Open Chrome DevTools > Rendering > Show layer borders
+# Expected: Tiles on separate composite layers
+
+# Check for layout shifts
+npx lighthouse http://localhost:5173 \
+  --only-audits=cumulative-layout-shift \
+  --quiet \
+  --chrome-flags="--headless"
+# Expected: CLS < 0.1
+```
 
 ### Task 1.3: Basic Rotation Controls
 **Goal:** Add left/right navigation buttons
@@ -105,9 +131,78 @@ pnpm typecheck
 - Visible focus states
 **Rollback:** `git checkout -- src/components/lab/LabCarousel.tsx`
 
-## Phase 2: Lightbox Modal
+## Phase 2: Interaction + Lightbox Modal ✅
 
-### Task 2.1: Modal Component
+### Task 2.0: Setup ESLint & Prettier
+**Goal:** Add linting and formatting tools
+**Steps:**
+1. Install ESLint, TypeScript ESLint, Prettier
+2. Configure .eslintrc.cjs and .prettierrc
+3. Add lint/format scripts
+
+**Commands:**
+```bash
+npm install --save-dev eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-config-prettier prettier
+npm run lint
+```
+
+**Expected Output:** No linting errors
+**Acceptance Criteria:** Code passes ESLint and TypeScript checks
+**Rollback:** `git checkout -- .eslintrc.cjs .prettierrc package.json`
+
+**Run These Checks:**
+```bash
+npm run typecheck
+npm run lint
+# Expected: Both pass without errors
+```
+
+### Task 2.1: Drag & Scroll Rotation
+**Goal:** Add interactive rotation controls
+**Steps:**
+1. Create useDragRotate hook for pointer events
+2. Add wheel event handling
+3. Implement inertia with damping
+4. Use CSS variables for CSP-safe transforms
+
+**Commands:**
+```bash
+npm run dev
+# Test drag and wheel rotation
+```
+
+**Expected Output:** Smooth rotation with inertia
+**Acceptance Criteria:**
+- Drag rotates cylinder smoothly
+- Release continues with decaying velocity
+- Wheel adjusts rotation without page scroll issues
+- 60 FPS maintained
+**Rollback:** `git checkout -- src/hooks/useDragRotate.ts src/components/lab/LabCarousel.tsx`
+
+**Run These Checks:**
+```bash
+# Open DevTools > Performance
+# Record during drag - verify 60 FPS
+# Check no long tasks > 50ms
+```
+
+### Task 2.2: Pause/Resume Logic
+**Goal:** Smart auto-rotation management
+**Steps:**
+1. Pause on hover/focus/drag
+2. Track last interaction time
+3. Resume after 2s idle
+4. Use RAF loop for consistent timing
+
+**Expected Output:** Auto-spin pauses and resumes intelligently
+**Acceptance Criteria:**
+- Hover pauses immediately
+- Resumes 2s after mouse leaves
+- Drag overrides auto-spin
+- Focus also pauses
+**Rollback:** `git checkout -- src/components/lab/LabCarousel.tsx`
+
+### Task 2.3: Accessible Lightbox Modal
 **Goal:** Create accessible lightbox modal
 **Steps:**
 1. Create LabLightbox.tsx component
@@ -151,7 +246,118 @@ pnpm preview
 - CLS < 0.1
 **Rollback:** `git checkout -- src/components/lab/`
 
-## Phase 3: View Toggle (Carousel ↔ Grid)
+## Phase 3: View Toggle (Carousel ↔ Grid) ✅
+
+### Task 3.1: Skip Link Implementation ✅
+**Goal:** Add accessible skip navigation link
+**Steps:**
+1. Create skip link in header
+2. Position off-screen until focused
+3. Link to carousel main content
+4. Test with keyboard navigation
+
+**Commands:**
+```bash
+pnpm dev
+# Tab to test skip link
+```
+
+**Expected Output:** Skip link appears on Tab, jumps to main content
+**Acceptance Criteria:**
+- Skip link visible on focus
+- Properly positioned and styled
+- Focus moves to carousel
+- Keyboard-only flow verified
+**Rollback:** `git checkout -- src/components/`
+
+### Task 3.2: Reduced Motion Defaults ✅
+**Goal:** Implement reduced motion preferences
+**Steps:**
+1. Add useReducedMotionPref hook
+2. Default to grid view when prefers-reduced-motion
+3. Disable auto-rotation by default
+4. Only enable 3D rotation on user interaction
+
+**Commands:**
+```bash
+npm run dev
+# Test with prefers-reduced-motion enabled
+```
+
+**Expected Output:** Static experience by default, enhanced on user action
+**Acceptance Criteria:**
+- Reduced motion defaults respected
+- No auto-spin unless user-initiated
+- Grid region and aspect-ratio guards in place
+- CLS < 0.1 verified
+**Rollback:** `git checkout -- src/hooks/useReducedMotionPref.ts`
+
+### Task 3.3: Playwright + Axe Integration ✅
+**Goal:** Add automated accessibility testing
+**Steps:**
+1. Install @axe-core/playwright
+2. Create lab.a11y.spec.ts test file
+3. Test keyboard navigation paths
+4. Verify ARIA patterns
+5. Check focus management
+
+**Commands:**
+```bash
+npm install -D @axe-core/playwright
+npx playwright test tests/lab.a11y.spec.ts
+```
+
+**Expected Output:** All accessibility tests passing
+**Acceptance Criteria:**
+- Playwright + axe tests passing
+- Keyboard navigation verified
+- Focus trap in modal tested
+- Skip link behavior validated
+**Rollback:** `git checkout -- tests/lab.a11y.spec.ts`
+
+### Task 3.4: State Machine Implementation ✅
+**Goal:** Implement proper state management for interactions
+**Steps:**
+1. Define state machine (idle, interacting, modal-open)
+2. Implement state transitions
+3. Add ARIA live region for announcements
+4. Test state persistence
+
+**Commands:**
+```bash
+pnpm typecheck
+pnpm test
+```
+
+**Expected Output:** Predictable state management
+**Acceptance Criteria:**
+- Clear state transitions
+- ARIA live regions announce changes
+- Modal state properly managed
+- Focus restoration working
+**Rollback:** `git checkout -- src/components/lab/`
+
+### Task 3.5: Lighthouse CI Configuration ✅
+**Goal:** Set up continuous performance monitoring
+**Steps:**
+1. Configure Lighthouse CI
+2. Set performance thresholds
+3. Add CI workflow
+4. Test CLS < 0.1 requirement
+
+**Commands:**
+```bash
+npx lighthouse http://localhost:5173 --view
+# Check Performance ≥ 90, CLS < 0.1
+```
+
+**Expected Output:** Lighthouse CI configured with thresholds
+**Acceptance Criteria:**
+- Performance score ≥ 90
+- CLS < 0.1 enforced
+- Lighthouse CI configured
+- E2E test scenarios documented
+**Rollback:** `git checkout -- playwright.config.ts`
 
 ### Task 3.1: Grid View Component
 **Goal:** Create alternative grid layout
@@ -195,37 +401,49 @@ pnpm build
 - Reduced motion respected
 **Rollback:** `git checkout -- src/components/lab/`
 
-## Phase 4: Auto-rotation & Pause
+## Phase 4: Visual Enhancements (Progressive) ✅
 
-### Task 4.1: Auto-rotation Logic
-**Goal:** Implement automatic carousel rotation
+### Task 4.1: Feature Flags System ✅
+**Goal:** Add feature flags with conservative defaults (OFF by default)
 **Steps:**
-1. Add rotation interval (5s default)
-2. Implement requestAnimationFrame loop
-3. Calculate smooth rotation increments
-4. Add configuration options
+1. Create flags.ts with VisualFxConfig type
+2. Implement shouldEnableFx() with reduced-motion and hardware gating
+3. Default all FX to OFF (master kill switch)
+4. Gate on minimum 6 cores for mobile devices
 
-**Commands:**
-```bash
-pnpm dev
-# Check DevTools Performance tab for FPS
-```
-
-**Expected Output:** Smooth continuous rotation
 **Acceptance Criteria:**
-- 60 FPS maintained
-- Configurable speed
-- Respects reduced motion
-- GPU-accelerated transforms only
-**Rollback:** `git checkout -- src/hooks/useAutoRotation.ts`
+- FX disabled by default
+- Reduced motion always disables FX
+- Low-core devices auto-disable FX
 
-### Task 4.2: Pause on Interaction
-**Goal:** Stop rotation during user interaction
+### Task 4.2: CSS-Only Visual Effects ✅
+**Goal:** Implement performant CSS-only visual effects
 **Steps:**
-1. Detect hover/focus on tiles
-2. Pause on manual navigation
-3. Resume after delay
-4. Add play/pause button
+1. **Scanlines overlay** - repeating linear gradient on container
+2. **RGB split on hover** - pseudo-elements with channel offsets
+3. **Depth fade** - opacity based on tile position via --depthFactor
+
+**Acceptance Criteria:**
+- No JavaScript per-frame calculations
+- Effects use GPU compositing
+- CLS remains < 0.1
+- FPS stable at ~60
+
+### Task 4.3: FX Toggle UI ✅
+**Goal:** Manual override controls for visual effects
+**Steps:**
+1. Create FxToggle component with master switch
+2. Individual toggles for each effect
+3. Show disabled state when master is off
+4. Add data-testid for testing
+
+### Task 4.4: Tests & Documentation ✅
+**Goal:** Ensure FX behavior is correct and documented
+**Steps:**
+1. Playwright tests for FX gating
+2. Reduced motion enforcement tests
+3. Update ARCHITECTURE.md with FX system
+4. Document performance impact
 
 **Commands:**
 ```bash
