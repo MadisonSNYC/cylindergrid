@@ -28,12 +28,20 @@
   width: 16rem; /* Tailwind w-64 equivalent */
   height: 10rem; /* Tailwind h-40 equivalent */
   transform-style: preserve-3d;
-  backface-visibility: hidden;
+  backface-visibility: visible; /* IMPORTANT: allow tile to render both sides; inner .lab-card will hide its own backface */
   translate: -50% -50%; /* center anchor point */
   /* CSP-safe variables option:
      transform: rotateY(calc(var(--tile-index) * var(--tile-angle) + var(--rotation, 0deg)))
                 translateZ(var(--radius));
    */
+}
+
+.lab-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  backface-visibility: hidden; /* hide the card's back, but not the outer tile */
 }
 
 .lab-img {
@@ -255,13 +263,13 @@
   pointer-events: none;
   background: repeating-linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.05) 0px,
-    rgba(255, 255, 255, 0.05) 1px,
-    rgba(0, 0, 0, 0) 2px,
+    rgba(255, 255, 255, 0.03) 0px,
+    rgba(255, 255, 255, 0.03) 1px,
+    rgba(0, 0, 0, 0) 3px,
     rgba(0, 0, 0, 0) 4px
   );
   mix-blend-mode: screen;
-  opacity: 0.8;
+  opacity: 0.15;
   z-index: 1;
 }
 
@@ -306,17 +314,17 @@
   opacity: 0.7;
 }
 
-/* 3) Depth fade: far tiles down-weighted more aggressively, optional subtle blur */
+/* 3) Depth fade: far tiles down-weighted (but still visible), very subtle blur */
 .lab-fx--on .lab-tile {
-  /* --depthFactor in [0..1]; 1=front, 0=far */
-  opacity: calc(0.35 + (var(--depthFactor, 1) * 0.65));
-  filter: blur(calc((1 - var(--depthFactor, 1)) * 1.2px))
+  /* --depthFactor in [0..1]; 1=front, 0=far. Keep backs >= 0.55 opacity so they're readable. */
+  opacity: calc(0.55 + (var(--depthFactor, 1) * 0.45));
+  filter: blur(calc((1 - var(--depthFactor, 1)) * 0.6px))
     brightness(calc(0.4 + (var(--depthFactor, 1) * 0.6)))
     contrast(calc(0.5 + (var(--depthFactor, 1) * 0.5)))
     saturate(calc(0.3 + (var(--depthFactor, 1) * 0.7)));
   transition:
-    opacity 0.3s ease,
-    filter 0.3s ease;
+    opacity 0.25s ease,
+    filter 0.25s ease;
 }
 
 /* Debug: Show depth factor as a visual indicator */

@@ -280,17 +280,21 @@ export default function LabCarousel() {
                 }}
               >
                 {projects.map((p, i) => {
-                  // Use CSS variables for CSP-safe transforms
+                  // Position the tile around the cylinder:
+                  const rotate = `rotateY(${angleDeg * i}deg) translateZ(${radius}px)`;
+                  // Inner card faces the camera by undoing (tileAngle + containerRotation):
+                  const faceBack = `rotateY(${-(angleDeg * i + rotationDeg)}deg)`;
                   return (
                     <div
                       key={p.href}
                       className="lab-tile"
                       data-testid="lab-tile"
                       style={{
-                        ['--tile-index' as string]: String(i),
-                        ['--tile-angle' as string]: `${angleDeg}deg`,
-                        ['--radius' as string]: `${radius}px`,
-                        transform: `rotateY(calc(var(--tile-index) * var(--tile-angle))) translateZ(var(--radius))`,
+                        transform: rotate,
+                        // CSS-vars path alternative (Phase 3+):
+                        // ['--tile-index' as string]: String(i),
+                        // ['--tile-angle' as string]: `${angleDeg}deg`,
+                        // ['--radius' as string]: `${radius}px`,
                         ...(fxActive && fx.depthFade
                           ? { ['--depthFactor' as string]: String(depthForIndex(i)) }
                           : {}),
@@ -299,11 +303,13 @@ export default function LabCarousel() {
                         fxActive && fx.depthFade ? depthForIndex(i).toFixed(2) : undefined
                       }
                     >
-                      <LabTile
-                        project={p}
-                        onTileClick={(e) => handleTileClick(i, e)}
-                        fxEnabled={fxActive}
-                      />
+                      <div className="lab-card" style={{ transform: faceBack }}>
+                        <LabTile
+                          project={p}
+                          onTileClick={(e) => handleTileClick(i, e)}
+                          fxEnabled={fxActive}
+                        />
+                      </div>
                     </div>
                   );
                 })}
